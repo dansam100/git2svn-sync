@@ -1,15 +1,27 @@
-from config import git_url, TRACE_LOGS
+from config import git_url, git_branch, git_pull_timeout, TRACE_LOGS
 from git import Repo
 
 repo = Repo(git_url)
-print(repo.git._version_info)
+print("GIT version", repo.git.version_info, "\n")
+
+branch_exists = False
+for ref in repo.references:
+    if git_branch == ref.name:
+        print(f"Checking out branch: {git_branch}\n")
+        repo.git.checkout(git_branch)
+        branch_exists = True
+        break
+
+if not branch_exists:
+    print(f"Checking out NEW branch: {git_branch}\n")
+    repo.git.checkout('-b', git_branch)
 
 
 def get_last_commit(with_pull=True):
     origin = repo.remote('origin')
 
     if with_pull:
-        origin.pull(kill_after_timeout=60000)
+        origin.pull(kill_after_timeout=git_pull_timeout)
 
     return repo.head.commit
 
@@ -23,10 +35,10 @@ def get_revisions_since(rev):
 
 def get_diff(rev):
     cmd = repo.git
-    diff = cmd.diff("--no-prefix", "-p", "--raw", f"{rev}~1..{rev}")
+    diff = cmd.diff("--no-prefix", f"{rev}~1..{rev}")
     files = cmd.diff("--name-only", f"{rev}~1..{rev}")
     msg = cmd.log("--pretty=format:%B", f"{rev}~1..{rev}")
-    author = cmd.log("--pretty=format:%aN", f"{rev}~1..{rev}")
+    author = cmd.log("--pretty=format:%ce", f"{rev}~1..{rev}")
 
     if TRACE_LOGS:
         print(f"Diff (revision = {rev})\n\n{diff}")
