@@ -1,7 +1,7 @@
 import threading
 from flask import Flask
 
-from logger import get_logger
+from utils.logger import get_logger
 
 _lock = threading.Lock()
 app = Flask("git2svn-sync")

@@ -2,7 +2,7 @@ import sys
 import traceback
 
 import app
-import logger
+from utils import logger
 
 if __name__ == "__main__":
     try:

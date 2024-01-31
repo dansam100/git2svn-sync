@@ -2,13 +2,13 @@ from typing import List, NamedTuple
 
 import config
 
-import utils
+from utils import utils
 
 from repo.git_tracker import TrackerBase
 from repo.git_tracker import GitTracker
 from repo.svn_tracker import SvnTracker
 
-from logger import get_logger
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,3 +1,11 @@
+### SPECIAL FILES ###
+**/sync_last_*
+**/sync_last_*.bk
+**/pending_*
+/output/patches/**
+/output/logs/**
+output
+
 # Custom
 __pycache__
 venv
@@ -143,10 +151,3 @@ secrets.yml
 .sts4-cache
 .vscode
 **/keystore.*
-
-### SPECIAL FILES ###
-**/sync_last_*
-**/sync_last_*.bk
-**/pending_*
-/patches/**
-/logs/**

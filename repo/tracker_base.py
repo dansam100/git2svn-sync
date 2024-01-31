@@ -1,9 +1,7 @@
 import difflib
 from typing import List, NamedTuple
 
-import utils
-import diff_tools
-import logger
+from utils import utils, logger, diff_tools
 
 logger = logger.get_logger(__name__)
 

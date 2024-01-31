@@ -1,11 +1,10 @@
 import sys
 import traceback
 
-import config
+from server import config, setup
 import utils
-import setup
 
-from logger import get_logger
+from utils.logger import get_logger
 from repo.git_tracker import GitTracker
 from repo.svn_tracker import SvnTracker
 
@@ -25,8 +24,7 @@ def setup_folders():
 
 
 def test_diffs(svn: SvnTracker, git: GitTracker):
-    import diff_tools
-    import codecs
+    from utils import diff_tools
 
     logger.info("Running tests")
     # svn2 = SvnTracker(svn.name, "C:\svnrepo-test", "test")

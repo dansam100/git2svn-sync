@@ -4,16 +4,16 @@ import collections
 import subprocess
 import threading
 
-import utils
+from utils import utils
 from git import Repo
 
 from repo.tracker_base import TrackerBase
 
-from diff_tools import git_format_diff, git_get_binary_files
-from config import COMPANY_DOMAIN
-from config import git_pull_timeout
-from config import patches_dir, DUMMY_GIT, USE_PATCH_TOOL_FOR_GIT
-from logger import get_logger
+from utils.diff_tools import git_format_diff, git_get_binary_files
+from server.config import COMPANY_DOMAIN
+from server.config import git_pull_timeout
+from server.config import patches_dir, DUMMY_GIT, USE_PATCH_TOOL_FOR_GIT
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 from logging.handlers import TimedRotatingFileHandler
 
-logs_dir = "./logs/"
+logs_dir = "../output/logs/"
 print("Creating logs directory")
 if not os.path.exists(os.path.dirname(logs_dir)):
     try:
@@ -42,7 +42,7 @@ class NewRotatingFileHandler(TimedRotatingFileHandler):
 
 # Settings
 c_handler = logging.StreamHandler()
-f_handler = NewRotatingFileHandler('logs/git2svn-sync.log', backupCount=10, encoding="utf-8", when='midnight')
+f_handler = NewRotatingFileHandler('output/logs/git2svn-sync.log', backupCount=10, encoding="utf-8", when='midnight')
 f_format = logging.Formatter('%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s')
 c_handler.setFormatter(f_format)
 f_handler.setFormatter(f_format)

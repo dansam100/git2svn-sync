@@ -11,13 +11,13 @@ import time
 from datetime import timezone
 import dateutil.parser as dateparser
 
-import utils
+from utils import utils
 from repo.tracker_base import TrackerBase
 
-from diff_tools import svn_format_diff, git_get_binary_files, git_get_rename_files
-from config import DUMMY_SVN
-from config import patches_dir, USE_SVN_PATCH_FORMAT, USE_PATCH_TOOL_FOR_SVN
-from logger import get_logger
+from utils.diff_tools import svn_format_diff, git_get_binary_files, git_get_rename_files
+from server.config import DUMMY_SVN
+from server.config import patches_dir, USE_SVN_PATCH_FORMAT, USE_PATCH_TOOL_FOR_SVN
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
