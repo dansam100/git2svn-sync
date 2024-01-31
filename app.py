@@ -1,106 +1,148 @@
-import os
-import errno
-
 import sys
 import traceback
+import threading
 from time import sleep
 
-import unicodedata
-
-from config import patches_dir
-import git_tracker as git
-import svn_tracker as svn
+import config
+import utils
 import tracker
+import setup
+import web
+
+from logger import get_logger
+from repo.tracker_base import TrackerBase
+
+logger = get_logger(__name__)
+threads = []
 
 
-def start_git_revision_tracker():
-    print("Starting revision tracker...")
+def start_revision_tracker(name: str, source: TrackerBase, target: TrackerBase):
+    logger.info(f"Starting revision tracker ({name})...")
     iteration_count = 0
     commit_count = 0
     empty_count = 0
+    identical_count = 0
 
-    svn.cleanup()
+    source.cleanup()
+    target.cleanup()
+    tracker.initialize(name)
 
     while True:
         try:
-            last_tracked_rev = tracker.get_last_git_revision()
-            git_last_commit = git.get_last_commit(with_pull=True)
-            svn_last_commit = svn.get_last_commit()
-            pending_revs = list(git.get_revisions_since(last_tracked_rev))
+            if config.USE_TRIGGERS_TO_INITIATE_SYNC:
+                logger.info(f"{name}: Waiting for trigger to initiate sync")
+                utils.wait_until(web.has_trigger_for(name))
+                # clear trigger counters
+                web.clear_trigger_counter(name)
 
-            git_commit_message = git_last_commit.message.replace('\n', '\t')
-            svn_commit_message = svn_last_commit.msg.replace('\n', '\t')
+            pending_revs = tracker.get_pending_revisions(name)
+            last_src_tracked_rev, last_tgt_tracked_rev, last_src_tracked_rev_pos = tracker.get_last_revision(name)
 
-            print(f"\n\nIteration: {iteration_count}, {commit_count} commits completed")
-            print(f"Last revision (Git): {git_commit_message}")
-            print(f"Last revision (Svn): {svn_commit_message}")
-            print(f"Revision tracker: last(git) = {git_last_commit.hexsha}, last(svn) = {svn_last_commit.revision}, "
-                  f"pending = {len(pending_revs)} commits")
+            source_last_commit = source.get_last_commit(with_pull=True)
+            target_last_commit = target.get_last_commit()
+
+            # reload pending revs if cannot be found
+            if len(pending_revs) == 0 or last_src_tracked_rev_pos < 0:
+                last_src_tracked_rev_pos = 0
+                pending_revs = list(source.get_revisions_since(last_src_tracked_rev))
+
+            source_commit_message = source_last_commit.message.replace('\n', '\t')
+            target_commit_message = target_last_commit.message.replace('\n', '\t')
+
+            logger.info(f"{name}: Iteration: {iteration_count}, {commit_count} commits completed, "
+                        f"{identical_count} identical, {empty_count} empty commits")
+
+            logger.info(f"{name}: Last source revision: {source_commit_message}")
+            logger.info(f"{name}: Last target revision: {target_commit_message}")
+            logger.info(f"{name}: Revision sync tracker: last({source.type}) = {source_last_commit.revision}, "
+                        f"last({target.type}) = {target_last_commit.revision}, "
+                        f"pending = {len(pending_revs)} commits, position = {last_src_tracked_rev_pos}")
 
             if len(pending_revs) <= 0:
-                print("No pending changes...resume in 60 seconds")
+                logger.info(f"{name}: No pending changes...resume in 60 seconds")
+                web.clear_trigger_counter(name)
                 sleep(60)
                 continue
 
-            print(f"Revisions (pending): ", ", ".join(pending_revs))
+            logger.info(f"{name}: Revisions (pending): {', '.join(map(str, pending_revs))}")
 
-            tracker.save_pending_revisions(pending_revs)
+            tracker.save_pending_revisions(name, pending_revs)
 
-            for rev in pending_revs:
+            latest_synced_tgt_rev = None
+            latest_synced_src_rev = None
+            for rev in pending_revs[last_src_tracked_rev_pos:]:
                 try:
-                    msg, author, diff, files = git.get_diff(rev)
-                    if not remove_control_characters(str(diff)).strip():
+                    logger.info(f"Processing rev: {rev} from position: {last_src_tracked_rev_pos}")
+                    date, msg, author, diff, files = source.get_diff(rev)
+                    if not utils.remove_control_characters(str(diff)).strip():
+                        logger.info(f"{name}: Diff was empty for revision: {rev}")
                         empty_count += 1
                         continue
 
-                    svn_msg, svn_rev = svn.commit(msg, author, rev, diff, files)
-                    if svn_rev:
+                    target_msg, latest_synced_tgt_rev = target.commit(date, msg, author, rev, diff, files, src=source)
+                    iteration_count += 1
+
+                    if latest_synced_tgt_rev:
                         commit_count += 1
-                        tracker.set_last_revision(rev, svn_rev)
-
-                    sleep(1)
+                        last_src_tracked_rev_pos += 1
+                        latest_synced_src_rev = rev
+                        # Only update position but keep original start and end points
+                        tracker.set_last_revision(name, last_src_tracked_rev, last_tgt_tracked_rev,
+                                                  last_src_tracked_rev_pos)
+                        sleep(1)
+                    else:
+                        raise Exception("Patch application produces no revision changes")
                 except Exception as exc:
-                    print(f"{exc} occurred in apply diff loop")
+                    logger.error(f"{name}: {exc} occurred in apply diff loop")
                     traceback.print_exc(file=sys.stdout)
-                    svn.cleanup()
+                    raise
 
-            iteration_count += 1
+            # done current batch scenario, move latest revision for src and tgt to final items
+            if last_src_tracked_rev_pos >= len(pending_revs):
+                logger.info(f"Finished batch of {len(pending_revs)} revisions from index {last_src_tracked_rev_pos}")
+                logger.info(f"Saving limit from '{last_src_tracked_rev}' to '{latest_synced_src_rev}'")
+                tracker.set_last_revision(name, latest_synced_src_rev, latest_synced_tgt_rev, -1)
+
         except Exception as loopEx:
-            svn.cleanup()
-            print(f"{loopEx} occurred. Retrying...")
+            logger.critical(f"{name}: {loopEx} occurred. Cleaning up...")
             traceback.print_exc(file=sys.stdout)
 
-    print("Stopping revision tracker...")
+            # clean up
+            source.cleanup()
+            target.cleanup()
+
+            logger.critical(f"{name}: Cleaned up error. Retrying...")
+            logger.critical(f"{name}: Encountered error...resume in 60 seconds")
+            sleep(60)
+
+    logger.info(f"Stopping revision tracker ({name}...")
 
 
-def remove_control_characters(s):
-    result = ""
-    for ch in s:
-        if unicodedata.category(ch)[0] != "C":
-            result += ch
-        else:
-            result += ';'
-
-    return result
-
-
-def setup():
-    if not os.path.exists(os.path.dirname(patches_dir)):
-        try:
-            os.makedirs(os.path.dirname(patches_dir))
-        except OSError as exc:  # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
+def create_thread(args):
+    return threading.Thread(target=start_revision_tracker, args=args, daemon=True)
 
 
 if __name__ == '__main__':
     try:
-        setup()
-        start_git_revision_tracker()
+        setup.run()
+
+        # initialize trackers
+        trackers = setup.get_trackers()
+        for trk in trackers:
+            web.initialize(trk.name)
+            threads.append(create_thread([trk.name, trk.src, trk.tgt]))
+
+        # start all worker threads
+        for t in threads:
+            t.start()
+
+        # launch dev webserver
+        web.run()
+
     except KeyboardInterrupt:
-        print("Stopped!")
+        logger.info("Stopped!")
         raise
     except Exception as ex:
-        print(ex)
+        logger.info(ex)
         traceback.print_exc(file=sys.stdout)
         sys.exit(1)

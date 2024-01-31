@@ -1,2 +1,5 @@
 svn
+patch
+flask
+gunicorn
 git-python==1.0.3

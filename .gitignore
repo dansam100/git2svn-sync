@@ -1,3 +1,8 @@
+# Custom
+__pycache__
+venv
+venvironment
+
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
@@ -140,6 +145,8 @@ secrets.yml
 **/keystore.*
 
 ### SPECIAL FILES ###
-last
-last.bk
-pending
+**/sync_last_*
+**/sync_last_*.bk
+**/pending_*
+/patches/**
+/logs/**
