@@ -1,7 +1,7 @@
 import difflib
 from typing import List, NamedTuple
 
-from utils import utils, logger, diff_tools
+from utils import file_utils, logger, diff_tools
 
 logger = logger.get_logger(__name__)
 
@@ -54,7 +54,7 @@ class TrackerBase(metaclass=TrackerMeta):
         logger.debug(f"Overwrite contents: {contents}")
 
         file_path = f"{self.repo_path}/{file}"
-        utils.overwrite_file(file_path, contents)
+        file_utils.overwrite_file(file_path, contents)
 
     def get_file(self, rev, file, is_binary=False, encoding="utf-8-sig"):
         pass
@@ -63,7 +63,7 @@ class TrackerBase(metaclass=TrackerMeta):
         logger.info(f"Pulling contents of file (local) = {file} and is_binary={is_binary}")
 
         file_path = f"{self.repo_path}/{file}"
-        if not utils.file_exists(file_path):
+        if not file_utils.file_exists(file_path):
             return ""
 
         with open(file_path, "r", encoding=encoding) as file:
@@ -126,7 +126,7 @@ class TrackerBase(metaclass=TrackerMeta):
                 tgt_content: str = tgt.get_current_file(file)
                 print(f"Src: {src_content}")
                 print(f"Tgt: {tgt_content}")
-                if utils.is_content_identical(tgt_content, src_content):
+                if file_utils.is_content_identical(tgt_content, src_content):
                     identical_count += 1
                 else:
                     is_file_identical = False

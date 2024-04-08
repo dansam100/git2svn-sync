@@ -1,11 +1,11 @@
 import os
 
-from utils import utils
+from utils import file_utils
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-COMPANY_DOMAIN = "company.com"
+COMPANY_DOMAIN = "eztaxreturn.com"
 
 DUMMY_SVN = False
 USE_SVN_PATCH_FORMAT = True
@@ -18,10 +18,10 @@ USE_PATCH_TOOL_FOR_GIT = False
 USE_TRIGGERS_TO_INITIATE_SYNC = False
 
 # app root
-app_root_dir = os.getcwd().replace("\\", "/")
+app_root_dir = "c:/work/repo/git2svn-sync/" or os.getcwd().replace("\\", "/")
 
 # synchronization mode 'source=>dest'
-default_sync_mode = 'git=>svn'
+default_sync_mode = 'svn=>git'
 
 # patches
 patches_dir = f"{app_root_dir}/output/patches/"
@@ -51,12 +51,12 @@ sync_configs = [
     #     'target_branch': "GitSvnMirror",
     # },
     {
-        'mode': "git=>svn",
-        'name': 'main_git2svn',
-        'source_url': "C:/git",
-        'source_branch': "main",
-        'target_url': "C:/svn",
-        'target_branch': "trunk",
+        'mode': "svn=>git",
+        'name': 'main_svn2git',
+        'source_url': "C:/work/test/scriptsez",
+        'source_branch': "trunk",
+        'target_url': "C:/work/repo/eztax-web",
+        'target_branch': "master",
     },
 ]
 
@@ -65,8 +65,8 @@ logger.info(f"SVN args: DUMMY_SVN={DUMMY_SVN}, USE_SVN_PATCH_FORMAT={USE_SVN_PAT
 logger.info(f"Git args: DUMMY_GIT={DUMMY_GIT}")
 
 for config in sync_configs:
-    source = "Git" if utils.is_git_to_svn_mode(config['mode']) else "Svn"
-    target = "Git" if utils.is_svn_to_git_mode(config['mode']) else "Svn"
+    source = "Git" if file_utils.is_git_to_svn_mode(config['mode']) else "Svn"
+    target = "Git" if file_utils.is_svn_to_git_mode(config['mode']) else "Svn"
 
     source_url = config['source_url']
     target_url = config['target_url']

@@ -4,7 +4,7 @@ import collections
 import subprocess
 import threading
 
-from utils import utils
+from utils import file_utils
 from git import Repo
 
 from repo.tracker_base import TrackerBase
@@ -143,7 +143,7 @@ class GitTracker(TrackerBase):
     def retrieve_binaries(self, binary_files, rev: str, src: TrackerBase):
         for file in binary_files:
             file_byte_array = src.get_file(rev, file, is_binary=True)
-            utils.overwrite_file(f"{self.repo_path}/{file}", file_byte_array)
+            file_utils.overwrite_file(f"{self.repo_path}/{file}", file_byte_array)
 
     def format_and_save(self, rev, diff):
         diff_lines = git_format_diff(diff, revision="HEAD")

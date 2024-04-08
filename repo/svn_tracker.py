@@ -11,7 +11,7 @@ import time
 from datetime import timezone
 import dateutil.parser as dateparser
 
-from utils import utils
+from utils import file_utils
 from repo.tracker_base import TrackerBase
 
 from utils.diff_tools import svn_format_diff, git_get_binary_files, git_get_rename_files
@@ -210,7 +210,7 @@ class SvnTracker(TrackerBase):
             to_file = f"{self.repo.path}/{file['to']}"
             from_file = f"{self.repo.path}/{file['from']}"
             logger.info(f"Renaming {from_file} to {to_file}")
-            utils.create_folders(to_file)
+            file_utils.create_folders(to_file)
             self.run_svn_command("mv", ["--force", "--parents", from_file, to_file])
         if len(renamed_files) > 0:
             logger.info(self.run_svn_command("stat"))
