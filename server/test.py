@@ -2,7 +2,7 @@ import sys
 import traceback
 
 from server import config, setup
-import utils
+from utils import file_utils
 
 from utils.logger import get_logger
 from repo.git_tracker import GitTracker
@@ -17,10 +17,10 @@ def setup_folders():
 
     for fol in folders:
         logger.info(f"Creating folder: {fol}")
-        utils.create_folders(fol)
+        file_utils.create_folders(fol)
 
     for sync_config in config.sync_configs:
-        utils.create_folders(f"{config.patches_dir}{sync_config['name']}/")
+        file_utils.create_folders(f"{config.patches_dir}{sync_config['name']}/")
 
 
 def test_diffs(svn: SvnTracker, git: GitTracker):
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     try:
         # setup
         setup.run()
-        utils.create_folders(f"{config.patches_dir}test/")
+        file_utils.create_folders(f"{config.patches_dir}test/")
 
         # init trackers
         svn_tracker = SvnTracker("test", "c:/svnrepo", "trunk", is_test=True)

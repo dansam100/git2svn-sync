@@ -1,6 +1,6 @@
 import shutil
 
-import utils
+from utils import file_utils
 
 from utils.logger import get_logger
 from server.config import tracker_dir
@@ -72,7 +72,7 @@ def get_pending_revisions(name):
     pending_file_name = f"{tracker_dir}pending_{name}"
     logger.info(f"Loading '{name}' revs from 'pending' file: {pending_file_name}")
 
-    if utils.file_exists(pending_file_name):
+    if file_utils.file_exists(pending_file_name):
         with open(pending_file_name, "r") as pending_file:
             revs = pending_file.readlines()
             pending_file.close()

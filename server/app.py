@@ -3,10 +3,10 @@ import traceback
 import threading
 from time import sleep
 
-import config
-from utils import tracker, utils
-import setup
-import web
+from server import config
+from utils import tracker, file_utils
+from server import setup
+from server import web
 
 from utils.logger import get_logger
 from repo.tracker_base import TrackerBase
@@ -30,7 +30,7 @@ def start_revision_tracker(name: str, source: TrackerBase, target: TrackerBase):
         try:
             if config.USE_TRIGGERS_TO_INITIATE_SYNC:
                 logger.info(f"{name}: Waiting for trigger to initiate sync")
-                utils.wait_until(web.has_trigger_for(name))
+                file_utils.wait_until(web.has_trigger_for(name))
                 # clear trigger counters
                 web.clear_trigger_counter(name)
 
@@ -73,7 +73,7 @@ def start_revision_tracker(name: str, source: TrackerBase, target: TrackerBase):
                 try:
                     logger.info(f"Processing rev: {rev} from position: {last_src_tracked_rev_pos}")
                     date, msg, author, diff, files = source.get_diff(rev)
-                    if not utils.remove_control_characters(str(diff)).strip():
+                    if not file_utils.remove_control_characters(str(diff)).strip():
                         logger.info(f"{name}: Diff was empty for revision: {rev}")
                         empty_count += 1
                         continue
@@ -121,22 +121,23 @@ def create_thread(args):
     return threading.Thread(target=start_revision_tracker, args=args, daemon=True)
 
 
+def run():
+    setup.run()
+    # initialize trackers
+    trackers = setup.get_trackers()
+    for trk in trackers:
+        web.initialize(trk.name)
+        threads.append(create_thread([trk.name, trk.src, trk.tgt]))
+    # start all worker threads
+    for t in threads:
+        t.start()
+    # launch dev webserver
+    web.run()
+
+
 if __name__ == '__main__':
     try:
-        setup.run()
-
-        # initialize trackers
-        trackers = setup.get_trackers()
-        for trk in trackers:
-            web.initialize(trk.name)
-            threads.append(create_thread([trk.name, trk.src, trk.tgt]))
-
-        # start all worker threads
-        for t in threads:
-            t.start()
-
-        # launch dev webserver
-        web.run()
+        run()
 
     except KeyboardInterrupt:
         logger.info("Stopped!")

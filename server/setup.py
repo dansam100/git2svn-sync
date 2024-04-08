@@ -1,8 +1,8 @@
 from typing import List, NamedTuple
 
-import config
+from server import config
 
-from utils import utils
+from utils import file_utils
 
 from repo.git_tracker import TrackerBase
 from repo.git_tracker import GitTracker
@@ -26,12 +26,12 @@ def get_trackers(**kwargs) -> List[TrackerSetup]:
     # use sync configs to create svn/git watchers
     for sync in config.sync_configs:
         sync_name = sync['name']
-        if utils.is_git_to_svn_mode(sync['mode']):
+        if file_utils.is_git_to_svn_mode(sync['mode']):
             src = GitTracker(sync_name, sync['source_url'], sync['source_branch'], **kwargs)
             tgt = SvnTracker(sync_name, sync['target_url'], sync['target_branch'], **kwargs)
             trackers.append(TrackerSetup(sync_name, sync['mode'], src, tgt))
 
-        elif utils.is_svn_to_git_mode(sync['mode']):
+        elif file_utils.is_svn_to_git_mode(sync['mode']):
             src = SvnTracker(sync_name, sync['source_url'], sync['source_branch'], **kwargs)
             tgt = GitTracker(sync_name, sync['target_url'], sync['target_branch'], **kwargs)
             trackers.append(TrackerSetup(sync_name, sync['mode'], src, tgt))
@@ -45,10 +45,10 @@ def setup_folders():
 
     for fol in folders:
         logger.info(f"Creating folder: {fol}")
-        utils.create_folders(fol)
+        file_utils.create_folders(fol)
 
     for sync_config in config.sync_configs:
-        utils.create_folders(f"{config.patches_dir}{sync_config['name']}/")
+        file_utils.create_folders(f"{config.patches_dir}{sync_config['name']}/")
 
 
 def run():

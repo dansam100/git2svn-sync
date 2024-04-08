@@ -1,8 +1,6 @@
 import sys
 import re
 
-import utils
-
 re_head_svn = re.compile('^Index:')
 re_diff_git = re.compile('^diff --git ([^ ]+) ([^ ]+$)')
 re_diff_file_mode = re.compile('.+ file mode [0-9]+$')
